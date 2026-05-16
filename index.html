@@ -100,6 +100,9 @@
         <div class="art-frame">
           <img id="heroImg" src="hero-main.png" alt="ภาพจักรวาลและวงล้อจักรราศี" onerror="this.style.display='none';document.getElementById('artFallback').style.display='block'" />
           <div id="artFallback" class="art-fallback" style="display:none">วางไฟล์ภาพ: <code>hero-main.png</code></div>
+          <div id="viewer"></div>
+<div id="top2"></div>
+<div id="suggest"></div>
         </div>
         <div class="art-caption">โหราศาสตร์เพื่อความโชคดีและความหวัง</div>
       </div>
@@ -111,6 +114,8 @@
         <div class="dash-meta">
           <span class="pill">ข้อมูลทั้งหมด: <b id="totalDraws">0</b> งวด</span>
           <span class="pill">อัปเดตล่าสุด: <b id="latestDate">-</b></span>
+          <span class="pill">ความแม่นยำ: <b id="accuracyRate">-</b></span>
+          <span class="pill">ประเมินแล้ว: <b id="accuracyCount">0</b></span>
         </div>
       </div>
 
@@ -145,7 +150,18 @@
           <div class="why" id="suggestWhy"></div>
         </div>
 
-        <div class="card card-wide">
+        <div class="card">
+          <div class="card-title">✅ สถิติการทำนายถูก (Accuracy)</div>
+          <div class="why" id="accuracyDetails">
+            กำลังคำนวณ…
+          </div>
+          <table class="table">
+            <thead><tr><th>งวดที่ออกจริง</th><th>ทายไว้</th><th>ผลที่ถูก</th></tr></thead>
+            <tbody id="tblHits"></tbody>
+          </table>
+        </div>
+
+<div class="card card-wide">
           <div class="card-title">🧾 ประวัติการทายผล (Prediction History)</div>
           <div id="history" class="history"></div>
         </div>
@@ -167,12 +183,3 @@
 </body>
 </html>
 
-</div>
-
-<script src="app.js"></script>
-</body>
-</html>div>
-
-<script src="app.js"></script>
-</body>
-</html>
