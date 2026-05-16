@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
-<hea
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ศรัทธาพยากรณ์ • Premium Lottery & Astrology</title>
@@ -38,8 +38,8 @@
       <a href="#contact">ติดต่อเรา</a>
     </nav>
 
-    <div class="nav-meta" title="page views on this device">
-      <span class="pill">👁️ ผู้เข้าชม <b id="viewer">0</b></span>
+    <div class="nav-meta" title="page views">
+      <span class="pill">👁️ ผู้เข้าชมรวม <b id="viewer">0</b></span>
     </div>
   </header>
 
@@ -51,12 +51,12 @@
         <div class="panel">
           <div class="panel-head">
             <span class="panel-chip">✨ ชุดเลขมงคลประจำวัน</span>
-            <span class="panel-note" id="modelNote">โมเดลสถิติ + ตัวเลขศาสตร์ (เพื่อความบันเทิง)</span>
+            <span class="panel-note" id="modelNote">กำลังโหลดข้อมูล…</span>
           </div>
           <div class="lucky-row" id="luckyCircles" aria-live="polite"></div>
           <div class="panel-foot">
-            <div class="hint">อ้างอิงจากฐานข้อมูลย้อนหลังในไฟล์ <code>lotto.json</code></div>
-            <button class="btn" id="btnRefresh">คำนวณใหม่</button>
+            <div class="hint">อ้างอิงจากฐานข้อมูลย้อนหลังในระบบ <code></code></div>
+            <button class="btn" id="btnRefresh" type="button">คำนวณใหม่</button>
           </div>
         </div>
 
@@ -89,20 +89,16 @@
               </div>
             </div>
 
-            <button class="btn btn-wide" id="btnPersonal">ทำนายเลขนำโชคของฉัน</button>
+            <button class="btn btn-wide" id="btnPersonal" type="button">ทำนายเลขนำโชคของฉัน</button>
             <div class="disclaimer">หมายเหตุ: ผลวิเคราะห์เป็นการประมวลผลเชิงสถิติและตัวเลขศาสตร์เพื่อความบันเทิง ไม่รับประกันผลรางวัล</div>
           </div>
         </div>
-
       </div>
 
       <div class="hero-right" aria-label="Hero artwork panel">
         <div class="art-frame">
-          <img id="heroImg" src="hero-main.png" alt="ภาพจักรวาลและวงล้อจักรราศี" onerror="this.style.display='none';document.getElementById('artFallback').style.display='block'" />
+          <img id="heroImg" src="hero-main.png" alt="ภาพจักรวาลและวงล้อจักรราศี" onerror="this.style.display='none';document.getElementById('artFallback').style.display='grid'" />
           <div id="artFallback" class="art-fallback" style="display:none">วางไฟล์ภาพ: <code>hero-main.png</code></div>
-          <div id="viewer"></div>
-<div id="top2"></div>
-<div id="suggest"></div>
         </div>
         <div class="art-caption">โหราศาสตร์เพื่อความโชคดีและความหวัง</div>
       </div>
@@ -114,7 +110,7 @@
         <div class="dash-meta">
           <span class="pill">ข้อมูลทั้งหมด: <b id="totalDraws">0</b> งวด</span>
           <span class="pill">อัปเดตล่าสุด: <b id="latestDate">-</b></span>
-          <span class="pill">ความแม่นยำ: <b id="accuracyRate">-</b></span>
+          <span class="pill">ความแม่นยำ (มงคล): <b id="accuracyRate">-</b></span>
           <span class="pill">ประเมินแล้ว: <b id="accuracyCount">0</b></span>
         </div>
       </div>
@@ -152,16 +148,14 @@
 
         <div class="card">
           <div class="card-title">✅ สถิติการทำนายถูก (Accuracy)</div>
-          <div class="why" id="accuracyDetails">
-            กำลังคำนวณ…
-          </div>
+          <div class="why" id="accuracyDetails">กำลังคำนวณ…</div>
           <table class="table">
-            <thead><tr><th>งวดที่ออกจริง</th><th>ทายไว้</th><th>ผลที่ถูก</th></tr></thead>
+            <thead><tr><th>งวดที่ออกจริง</th><th>✨ชุดเลขมงคลที่ทายไว้</th><th>ผลที่ถูก</th></tr></thead>
             <tbody id="tblHits"></tbody>
           </table>
         </div>
 
-<div class="card card-wide">
+        <div class="card card-wide">
           <div class="card-title">🧾 ประวัติการทายผล (Prediction History)</div>
           <div id="history" class="history"></div>
         </div>
@@ -171,10 +165,11 @@
     <footer class="footer" id="contact">
       <div class="footer-inner">
         <div>
-          <div class="footer-title">ศรัทธาพยากรณ์</div>
-          <div class="footer-sub">Premium lottery prediction & astrology platform</ tel:095-760-2580div>
+          <div class="footer-title">ศรัทธาพยากรณ์ โทร: 095-760-2580</div>
+          <div class="footer-sub">Premium lottery prediction & astrology platform • 
+            บริจาคสนับสนุนและพิ่มแรงโชคลาภที่ พ้อมเพย์: 095-760-2580 นาย ฤทธา ผายวงษา</div>
         </div>
-        <div class="footer-note">© <span id="yearNow"></span> • Designed for UI/UX demo</div>
+        <div class="footer-note">© <span id="yearNow"></span> • Designed for Public Use</div>
       </div>
     </footer>
   </main>
@@ -182,4 +177,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

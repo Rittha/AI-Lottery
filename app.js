@@ -16,7 +16,6 @@
   let draws = [];
   let timer = null;
 
-  // ---------------- Helpers ----------------
   const $ = (id) => document.getElementById(id);
   const pad = (v, n) => String(v ?? '').padStart(n, '0');
 
@@ -29,13 +28,34 @@
     if (el) el.textContent = txt;
   }
 
-  function localViewerIncrement() {
-    const key = 'viewer_count';
-    const v = Number(localStorage.getItem(key) || '0') + 1;
-    localStorage.setItem(key, String(v));
-    setText('viewer', String(v));
+  // ---------------- Global viewer (all users) ----------------
+  async function updateGlobalViewerOncePerSession() {
+    const VIEW_KEY = 'counted_view_session';
+    const viewerEl = $('viewer');
+
+    try {
+      if (sessionStorage.getItem(VIEW_KEY) === '1') {
+        const res = await fetch('https://ai-lottery.ritp157.workers.dev/stats/get');
+        const data = await res.json();
+        if (viewerEl && data?.ok) viewerEl.textContent = String(data.total_views);
+        return;
+      }
+
+      sessionStorage.setItem(VIEW_KEY, '1');
+      const res = await fetch('https://ai-lottery.ritp157.workers.dev/stats/view', {
+        method: 'POST',
+        keepalive: true,
+      });
+      const data = await res.json();
+      if (viewerEl && data?.ok) viewerEl.textContent = String(data.total_views);
+
+    } catch (e) {
+      // หาก API นับวิวล้มเหลว ไม่ทำให้หน้าเว็บพัง
+      console.log('viewer api error', e);
+    }
   }
 
+  // ---------------- Numerology ----------------
   function sumDigits(str) {
     return String(str).replace(/\D/g, '').split('').reduce((a, c) => a + Number(c), 0);
   }
@@ -58,7 +78,7 @@
     const key = 'prediction_history';
     const prev = JSON.parse(localStorage.getItem(key) || '[]');
     prev.unshift(payload);
-    localStorage.setItem(key, JSON.stringify(prev.slice(0, 50))); // keep more for accuracy stats
+    localStorage.setItem(key, JSON.stringify(prev.slice(0, 50)));
   }
 
   function renderHistory() {
@@ -73,7 +93,7 @@
     }
 
     host.innerHTML = prev.slice(0, 10).map(item => {
-      const nums = (item.suggest2 || []).concat(item.suggest3 || []);
+      const nums = (item.luckySet && item.luckySet.length) ? item.luckySet : (item.suggest2 || []).concat(item.suggest3 || []);
       const pills = nums.map(n => `<span class="smallpill">${n}</span>`).join('');
       return `
         <div class="history-item">
@@ -260,10 +280,10 @@
     setText('totalDraws', String(draws.length));
     setText('latestDate', draws[0]?.date || '-');
     setText('yearNow', String(new Date().getFullYear()));
-    setText('drawDateLabel', draws[0]?.date ? `งวดล่าสุด ${draws[0].date}` : 'งวดถัดไป');
+    setText('drawDateLabel', draws[0]?.date ? `อัพเดทงวดล่าสุด ${draws[0].date}` : 'งวดถัดไป');
   }
 
-  // ---------------- Accuracy evaluation ----------------
+  // ---------------- Accuracy (ใช้ ✨ชุดเลขมงคล) ----------------
   function evaluateAccuracy() {
     const key = 'prediction_history';
     const prev = JSON.parse(localStorage.getItem(key) || '[]');
@@ -280,8 +300,9 @@
     for (const item of prev) {
       const baseDate = item.baseDate;
       if (!baseDate || !indexByDate.has(baseDate)) continue;
+
       const baseIdx = indexByDate.get(baseDate);
-      if (baseIdx <= 0) continue; // no newer draw yet
+      if (baseIdx <= 0) continue; // ยังไม่มีงวดใหม่ถัดจาก baseDate
 
       const actual = draws[baseIdx - 1];
       if (!actual) continue;
@@ -291,18 +312,20 @@
       const actual2 = actual.back_2;
       const actual3 = [actual.front_3_1, actual.front_3_2, actual.back_3_1, actual.back_3_2].filter(Boolean);
 
-      const pred2 = Array.isArray(item.suggest2) ? item.suggest2 : [];
-      const pred3 = Array.isArray(item.suggest3) ? item.suggest3 : [];
+      // ✅ ใช้ ✨ชุดเลขมงคลประจำวัน เป็นชุดหลักในการชี้วัด
+      const luckySet = Array.isArray(item.luckySet) && item.luckySet.length
+        ? item.luckySet
+        : (item.suggest2 || []).concat(item.suggest3 || []);
 
-      const hit2 = pred2.includes(actual2) ? [actual2] : [];
-      const hit3 = pred3.filter(x => actual3.includes(x));
+      const hit2 = luckySet.includes(actual2) ? [actual2] : [];
+      const hit3 = luckySet.filter(x => actual3.includes(x));
 
       const hit = hit2.length > 0 || hit3.length > 0;
       if (hit) hitCount += 1;
 
       rows.push({
         date: actual.date || '—',
-        pred: [...pred2, ...pred3].join(', ') || '—',
+        pred: luckySet.join(', ') || '—',
         hit: [...hit2, ...hit3].join(', ') || '—',
         isHit: hit
       });
@@ -317,7 +340,7 @@
       const explain = evaluable > 0
         ? `ทายถูก <b>${hitCount}</b> จาก <b>${evaluable}</b> ครั้ง (คิดเป็น <b>${rate}</b>)`
         : 'ยังไม่มีงวดที่ประเมินได้ (ต้องทายก่อน และต้องมีการอัปเดตงวดใหม่เข้ามาใน lotto.json)';
-      detail.innerHTML = `${explain}<div style="margin-top:6px; opacity:.9">ประเมินจากประวัติที่บันทึกบนอุปกรณ์นี้เท่านั้น</div>`;
+      detail.innerHTML = `${explain}<div style="margin-top:6px; opacity:.9">ชี้วัดจาก ✨ชุดเลขมงคลประจำวัน ที่บันทึกไว้ ณ ตอนทาย (บนอุปกรณ์นี้)</div>`;
     }
 
     const host = $('tblHits');
@@ -333,9 +356,10 @@
     }
   }
 
-  // ---------------- Main compute ----------------
-  function computeAndRender({ mode = 'balanced', personalize = false } = {}) {
+  // ---------------- Main compute (กดปุ่มเท่านั้นถึงจะบันทึก history) ----------------
+  function computeAndRender({ mode = 'balanced', personalize = false, save = false } = {}) {
     const note = $('modelNote');
+
     if (!draws.length) {
       if (note) note.textContent = 'ไม่พบข้อมูลที่ใช้งานได้ใน lotto.json (ตรวจสอบรูปแบบข้อมูล)';
       return;
@@ -371,10 +395,12 @@
 
     renderSuggest(s2, s3, why);
 
-    // Save prediction (for future accuracy evaluation)
-    const time = new Date().toLocaleString();
-    saveHistory({ time, mode, seed, baseDate: draws[0]?.date || '', suggest2: s2, suggest3: s3 });
-    renderHistory();
+    if (save) {
+      const time = new Date().toLocaleString();
+      const luckySet = [...s2, ...s3]; // ✅ ✨ชุดเลขมงคลประจำวัน
+      saveHistory({ time, mode, seed, baseDate: draws[0]?.date || '', suggest2: s2, suggest3: s3, luckySet });
+      renderHistory();
+    }
 
     evaluateAccuracy();
 
@@ -387,9 +413,10 @@
     const json = await res.json();
     if (!Array.isArray(json)) throw new Error('lotto.json must be an array');
 
-    // normalize & filter invalid rows
+    // normalize & dedupe
     const cleaned = [];
     const seen = new Set();
+
     for (const row of json) {
       const n = normalizeDraw(row);
       if (!n) continue;
@@ -405,12 +432,12 @@
   function bindUI() {
     $('btnRefresh')?.addEventListener('click', () => {
       const mode = $('modeInput')?.value || 'balanced';
-      computeAndRender({ mode, personalize: false });
+      computeAndRender({ mode, personalize: false, save: true });
     });
 
     $('btnPersonal')?.addEventListener('click', () => {
       const mode = $('modeInput')?.value || 'balanced';
-      computeAndRender({ mode, personalize: true });
+      computeAndRender({ mode, personalize: true, save: true });
     });
   }
 
@@ -418,32 +445,10 @@
     try {
       await loadLocalData();
       updateMeta();
-      evaluateAccuracy(); // refresh UI stats even without new prediction
-      // Keep last mode for display (no new save)
-      const mode = $('modeInput')?.value || 'balanced';
-      // Render without saving history
-      // Temporarily call computeAndRender with a flag by reusing code without saving
-      // We'll duplicate minimal rendering here:
-      const stats = buildStats();
-      renderTop2Table(topEntries(stats.last2Freq, CONFIG.topN2));
-      renderPosTable(stats.posFreq);
-      renderDueTable(dueList(stats.last2LastSeen, CONFIG.dueTop));
-
-      const note = $('modelNote');
-      if (note) note.textContent = 'โมเดลสถิติ + ตัวเลขศาสตร์ (เพื่อความบันเทิง)';
-
-      // Also render current suggestions (without saving)
-      const seed = 0;
-      const ranked2 = score2Digit(stats, seed, mode);
-      const s2 = ranked2.slice(0, CONFIG.suggest2).map(x => x.n);
-      const front3 = score3Digit(stats.front3Freq, seed, mode);
-      const back3 = score3Digit(stats.back3Freq, seed, mode);
-      const s3 = [front3[0]?.n || '---', back3[0]?.n || '---'].slice(0, CONFIG.suggest3);
-      renderLuckyCircles(s2, s3);
-      renderSuggest(s2, s3, $('suggestWhy')?.innerHTML || '');
-
       renderHistory();
-
+      // render current view (ไม่บันทึก history)
+      const mode = $('modeInput')?.value || 'balanced';
+      computeAndRender({ mode, personalize: false, save: false });
     } catch (err) {
       console.error(err);
       const note = $('modelNote');
@@ -452,10 +457,8 @@
   }
 
   window.addEventListener('load', async () => {
-    localViewerIncrement();
     bindUI();
-    renderHistory();
-
+    await updateGlobalViewerOncePerSession();
     await refresh();
 
     if (timer) clearInterval(timer);
