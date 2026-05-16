@@ -2,8 +2,11 @@ name: Update Lottery Data
 
 on:
   schedule:
-    - cron: "0 11 * * *"  # ✅ ทุกวัน 18:00 ไทย
+    - cron: "0 11 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write   # ✅ จุดสำคัญ
 
 jobs:
   update:
