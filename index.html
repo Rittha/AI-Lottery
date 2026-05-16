@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="th">
+<hea
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ศรัทธาพยากรณ์ • Premium Lottery & Astrology</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <header class="nav">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <!-- Lotus / sacred mark (inline SVG) -->
+        <svg width="44" height="44" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 6c5 10 5 18 0 28C27 24 27 16 32 6Z" fill="currentColor" opacity="0.9"/>
+          <path d="M18 12c2 11 7 18 14 22-10-1-16-8-14-22Z" fill="currentColor" opacity="0.55"/>
+          <path d="M46 12c2 14-4 21-14 22 7-4 12-11 14-22Z" fill="currentColor" opacity="0.55"/>
+          <path d="M10 28c10 1 17 5 22 12-11-1-18-5-22-12Z" fill="currentColor" opacity="0.45"/>
+          <path d="M54 28c-4 7-11 11-22 12 5-7 12-11 22-12Z" fill="currentColor" opacity="0.45"/>
+          <path d="M16 46c7-5 13-7 16-7s9 2 16 7c-8 6-14 8-16 8s-8-2-16-8Z" fill="currentColor"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-title">ศรัทธาพยากรณ์</div>
+        <div class="brand-sub">ทำนายแม่นยำ • ด้วยข้อมูลสถิติและศาสตร์ตัวเลข</div>
+      </div>
+    </div>
+
+    <nav class="menu" aria-label="Primary">
+      <a href="#home">หน้าแรก</a>
+      <a href="#check">ตรวจสลาก</a>
+      <a href="#insight">บทความดวง</a>
+      <a href="#contact">ติดต่อเรา</a>
+    </nav>
+
+    <div class="nav-meta" title="page views on this device">
+      <span class="pill">👁️ ผู้เข้าชม <b id="viewer">0</b></span>
+    </div>
+  </header>
+
+  <main class="wrap" id="home">
+    <section class="hero">
+      <div class="hero-left">
+        <h1 class="hero-title">ทำนายผลสลากกินแบ่งรัฐบาล<br><span class="hero-date" id="drawDateLabel">งวดถัดไป</span></h1>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span class="panel-chip">✨ ชุดเลขมงคลประจำวัน</span>
+            <span class="panel-note" id="modelNote">โมเดลสถิติ + ตัวเลขศาสตร์ (เพื่อความบันเทิง)</span>
+          </div>
+          <div class="lucky-row" id="luckyCircles" aria-live="polite"></div>
+          <div class="panel-foot">
+            <div class="hint">อ้างอิงจากฐานข้อมูลย้อนหลังในไฟล์ <code>lotto.json</code></div>
+            <button class="btn" id="btnRefresh">คำนวณใหม่</button>
+          </div>
+        </div>
+
+        <div class="panel" id="check">
+          <div class="panel-head">
+            <span class="panel-chip">🔮 เช็คดวงโชคลาภรายบุคคล</span>
+            <span class="panel-note">ปรับผลแนะนำด้วยวันเกิด (Numerology)</span>
+          </div>
+
+          <div class="form">
+            <label>ชื่อ-นามสกุล</label>
+            <input id="nameInput" class="input" placeholder="ชื่อ-นามสกุล" autocomplete="name" />
+
+            <div class="grid3">
+              <div>
+                <label>วันเกิด</label>
+                <input id="dobInput" class="input" type="date" />
+              </div>
+              <div>
+                <label>เวลาเกิด (Optional)</label>
+                <input id="tobInput" class="input" type="time" />
+              </div>
+              <div>
+                <label>โหมดแนะนำ</label>
+                <select id="modeInput" class="input">
+                  <option value="balanced">Balanced (แนะนำสมดุล)</option>
+                  <option value="hot">Hot (ตามสถิติถี่)</option>
+                  <option value="due">Due (เน้นเลขค้าง)</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="btn btn-wide" id="btnPersonal">ทำนายเลขนำโชคของฉัน</button>
+            <div class="disclaimer">หมายเหตุ: ผลวิเคราะห์เป็นการประมวลผลเชิงสถิติและตัวเลขศาสตร์เพื่อความบันเทิง ไม่รับประกันผลรางวัล</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hero-right" aria-label="Hero artwork panel">
+        <div class="art-frame">
+          <img id="heroImg" src="hero-main.png" alt="ภาพจักรวาลและวงล้อจักรราศี" onerror="this.style.display='none';document.getElementById('artFallback').style.display='block'" />
+          <div id="artFallback" class="art-fallback" style="display:none">วางไฟล์ภาพ: <code>hero-main.png</code></div>
+        </div>
+        <div class="art-caption">โหราศาสตร์เพื่อความโชคดีและความหวัง</div>
+      </div>
+    </section>
+
+    <section class="dash" id="insight">
+      <div class="dash-head">
+        <h2>วิเคราะห์ผลตามหลักโหราศาสตร์และสถิติ</h2>
+        <div class="dash-meta">
+          <span class="pill">ข้อมูลทั้งหมด: <b id="totalDraws">0</b> งวด</span>
+          <span class="pill">อัปเดตล่าสุด: <b id="latestDate">-</b></span>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-title">📊 เลขท้าย 2 ตัว (Most Frequent 2-Digit)</div>
+          <table class="table">
+            <thead><tr><th>อันดับ</th><th>เลข</th><th>จำนวนครั้ง</th><th>ความน่าจะเป็น</th></tr></thead>
+            <tbody id="tblTop2"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📈 วิเคราะห์ตำแหน่งหลัก (Digit Position Analysis)</div>
+          <table class="table">
+            <thead><tr><th>หลัก</th><th>ตัวเลขเด่น</th><th>จำนวนครั้ง</th><th>ความน่าจะเป็น</th></tr></thead>
+            <tbody id="tblPos"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🟧 เลขที่ยังไม่ออก/ค้างนาน (Due Numbers)</div>
+          <table class="table">
+            <thead><tr><th>อันดับ</th><th>เลข</th><th>สถานะ</th><th>ล่าสุดเมื่อ</th></tr></thead>
+            <tbody id="tblDue"></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🎯 เลขแนะนำงวดถัดไป (Suggested Numbers)</div>
+          <div class="suggest-grid" id="suggestGrid"></div>
+          <div class="why" id="suggestWhy"></div>
+        </div>
+
+        <div class="card card-wide">
+          <div class="card-title">🧾 ประวัติการทายผล (Prediction History)</div>
+          <div id="history" class="history"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer" id="contact">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-title">ศรัทธาพยากรณ์</div>
+          <div class="footer-sub">Premium lottery prediction & astrology platform</ tel:095-760-2580div>
+        </div>
+        <div class="footer-note">© <span id="yearNow"></span> • Designed for UI/UX demo</div>
+      </div>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>div>
+
+<script src="app.js"></script>
+</body>
+</html>
