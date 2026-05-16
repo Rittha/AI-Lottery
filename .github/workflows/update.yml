@@ -1,0 +1,30 @@
+name: Update Lottery Data
+
+on:
+  schedule:
+    - cron: "0 11 * * *"  # ✅ ทุกวัน 18:00 ไทย
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Run update script
+      run: node update-lotto.js
+
+    - name: Commit and push
+      run: |
+        git config user.name "auto-bot"
+        git config user.email "auto@bot.com"
+        git add lotto.json
+        git commit -m "auto update lotto" || echo "no changes"
+        git push
