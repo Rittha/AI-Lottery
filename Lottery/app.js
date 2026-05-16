@@ -1,0 +1,348 @@
+(() => {
+  if (window.__AI_LOTTERY_APP_LOADED__) return;
+  window.__AI_LOTTERY_APP_LOADED__ = true;
+
+  const CONFIG = {
+    topN2: 10,
+    dueTop: 12,
+    suggest2: 2,
+    suggest3: 2,
+    recencyWindow: 12,
+    smoothing: 1.0,
+    refreshMs: 60000
+  };
+
+  let draws = [];
+  let timer = null;
+
+  const $ = (id) => document.getElementById(id);
+  const pad = (v, n) => String(v ?? '').padStart(n, '0');
+
+  const DIG6 = /^\d{6}$/;
+  const DIG3 = /^\d{3}$/;
+  const DIG2 = /^\d{2}$/;
+
+  function setText(id, txt) { const el = $(id); if (el) el.textContent = txt; }
+  function setHTML(id, html) { const el = $(id); if (el) el.innerHTML = html; }
+
+  function localViewerIncrement() {
+    const key = 'viewer_count';
+    const v = Number(localStorage.getItem(key) || '0') + 1;
+    localStorage.setItem(key, String(v));
+    setText('viewer', String(v));
+  }
+
+  function sumDigits(str) {
+    return String(str).replace(/\D/g, '').split('').reduce((a, c) => a + Number(c), 0);
+  }
+  function digitalRoot(n) {
+    let x = Math.abs(Number(n) || 0);
+    while (x > 9) x = String(x).split('').reduce((a, c) => a + Number(c), 0);
+    return x;
+  }
+  function numerologySeed({ name, dob, tob }) {
+    const nameSum = digitalRoot(sumDigits(Array.from(name || '').map(ch => ch.charCodeAt(0)).join('')));
+    const dobSum = digitalRoot(sumDigits(dob || ''));
+    const tobSum = digitalRoot(sumDigits(tob || ''));
+    return digitalRoot(nameSum + dobSum + tobSum);
+  }
+
+  function saveHistory(payload) {
+    const key = 'prediction_history';
+    const prev = JSON.parse(localStorage.getItem(key) || '[]');
+    prev.unshift(payload);
+    localStorage.setItem(key, JSON.stringify(prev.slice(0, 10)));
+  }
+
+  function renderHistory() {
+    const key = 'prediction_history';
+    const prev = JSON.parse(localStorage.getItem(key) || '[]');
+    const host = $('history');
+    if (!host) return;
+
+    if (!prev.length) {
+      host.innerHTML = '<div class="history-item"><div class="history-meta">ยังไม่มีประวัติ</div></div>';
+      return;
+    }
+
+    host.innerHTML = prev.map(item => {
+      const nums = (item.suggest2 || []).concat(item.suggest3 || []);
+      const pills = nums.map(n => `<span class="smallpill">${n}</span>`).join('');
+      return `
+        <div class="history-item">
+          <div class="history-meta">
+            <div>📅 ${item.time}</div>
+            <div>โหมด: <b>${item.mode}</b> • seed: <b>${item.seed}</b></div>
+          </div>
+          <div class="history-nums">${pills}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function normalizeDraw(d) {
+    const out = {
+      date: d.date,
+      prize_1: pad(d.prize_1, 6),
+      front_3_1: pad(d.front_3_1, 3),
+      front_3_2: pad(d.front_3_2, 3),
+      back_3_1: pad(d.back_3_1, 3),
+      back_3_2: pad(d.back_3_2, 3),
+      back_2: pad(d.back_2, 2)
+    };
+
+    const ok = DIG6.test(out.prize_1) && DIG3.test(out.front_3_1) && DIG3.test(out.front_3_2)
+      && DIG3.test(out.back_3_1) && DIG3.test(out.back_3_2) && DIG2.test(out.back_2)
+      && out.prize_1 !== '000000';
+
+    return ok ? out : null;
+  }
+
+  function buildStats() {
+    const last2Freq = new Map();
+    const last2LastSeen = new Map();
+    const posFreq = Array.from({ length: 6 }, () => Array(10).fill(0));
+    const front3Freq = new Map();
+    const back3Freq = new Map();
+
+    draws.forEach((d, idx) => {
+      const b2 = d.back_2;
+      last2Freq.set(b2, (last2Freq.get(b2) || 0) + 1);
+      last2LastSeen.set(b2, idx);
+
+      for (let p = 0; p < 6; p++) {
+        const dig = Number(d.prize_1[p]);
+        posFreq[p][dig] += 1;
+      }
+
+      front3Freq.set(d.front_3_1, (front3Freq.get(d.front_3_1) || 0) + 1);
+      front3Freq.set(d.front_3_2, (front3Freq.get(d.front_3_2) || 0) + 1);
+      back3Freq.set(d.back_3_1, (back3Freq.get(d.back_3_1) || 0) + 1);
+      back3Freq.set(d.back_3_2, (back3Freq.get(d.back_3_2) || 0) + 1);
+    });
+
+    return { last2Freq, last2LastSeen, posFreq, front3Freq, back3Freq };
+  }
+
+  function topEntries(map, limit) {
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, limit);
+  }
+
+  function dueList(lastSeenMap, limit) {
+    const list = [];
+    for (let i = 0; i < 100; i++) {
+      const n = String(i).padStart(2, '0');
+      if (!lastSeenMap.has(n)) list.push({ n, status: 'ไม่เคยออก', ago: Infinity });
+      else {
+        const lastIdx = lastSeenMap.get(n);
+        list.push({ n, status: lastIdx >= CONFIG.recencyWindow ? 'ค้างนาน' : 'เคยออก', ago: lastIdx });
+      }
+    }
+    return list.sort((a, b) => b.ago - a.ago).slice(0, limit);
+  }
+
+  function score2Digit(stats, seed, mode) {
+    const { last2Freq, last2LastSeen } = stats;
+    const total = draws.length;
+    const out = [];
+
+    for (let i = 0; i < 100; i++) {
+      const n = String(i).padStart(2, '0');
+      const f = last2Freq.get(n) || 0;
+      const p = (f + CONFIG.smoothing) / (total + 100 * CONFIG.smoothing);
+
+      const lastIdx = last2LastSeen.has(n) ? last2LastSeen.get(n) : 9999;
+      const overdue = Math.max(0, (lastIdx - CONFIG.recencyWindow) / CONFIG.recencyWindow);
+
+      const align = (Number(n[0]) === seed || Number(n[1]) === seed) ? 1 : 0;
+      const wHot = mode === 'hot' ? 1.15 : 1.0;
+      const wDue = mode === 'due' ? 1.15 : 1.0;
+
+      const score = (p * 100 * wHot) + (overdue * 8 * wDue) + (align * 2.5);
+      out.push({ n, f, p, overdue, align, score });
+    }
+
+    return out.sort((a, b) => b.score - a.score);
+  }
+
+  function score3Digit(freqMap, seed, mode) {
+    const total = draws.length * 2;
+    const out = [];
+    for (const [n, f] of freqMap.entries()) {
+      const p = (f + CONFIG.smoothing) / (total + 1000 * CONFIG.smoothing);
+      const align = n.includes(String(seed)) ? 1 : 0;
+      const score = (p * (mode === 'hot' ? 120 : 100)) + (align * 1.8);
+      out.push({ n, f, p, score });
+    }
+    return out.sort((a, b) => b.score - a.score);
+  }
+
+  function renderLuckyCircles(s2, s3) {
+    const host = $('luckyCircles');
+    if (!host) return;
+    const items = [
+      { v: s2[0] || '--', kind: '2d' },
+      { v: s2[1] || '--', kind: '2d' },
+      { v: s3[0] || '---', kind: '3d' },
+      { v: s3[1] || '---', kind: '3d' },
+    ];
+    host.innerHTML = items.map(x => `<div class="circle" data-kind="${x.kind}">${x.v}</div>`).join('');
+  }
+
+  function renderTop2Table(rows) {
+    const host = $('tblTop2');
+    if (!host) return;
+    host.innerHTML = rows.map(([n, f], i) => {
+      const prob = ((f / draws.length) * 100).toFixed(1) + '%';
+      return `<tr><td>${i + 1}</td><td><span class="badge">${n}</span></td><td>${f}</td><td>${prob}</td></tr>`;
+    }).join('');
+  }
+
+  function renderPosTable(posFreq) {
+    const host = $('tblPos');
+    if (!host) return;
+    const labels = ['แสน', 'หมื่น', 'พัน', 'ร้อย', 'สิบ', 'หน่วย'];
+    const total = draws.length;
+
+    host.innerHTML = posFreq.map((arr, p) => {
+      let bestDigit = 0, bestCount = arr[0];
+      for (let d = 1; d < 10; d++) {
+        if (arr[d] > bestCount) { bestCount = arr[d]; bestDigit = d; }
+      }
+      const prob = ((bestCount / total) * 100).toFixed(1) + '%';
+      return `<tr><td>${labels[p]}</td><td><span class="badge">${bestDigit}</span></td><td>${bestCount}</td><td>${prob}</td></tr>`;
+    }).join('');
+  }
+
+  function renderDueTable(due) {
+    const host = $('tblDue');
+    if (!host) return;
+    host.innerHTML = due.map((x, i) => {
+      const last = x.ago === Infinity ? '—' : `${x.ago} งวดก่อน`;
+      return `<tr><td>${i + 1}</td><td><span class="badge">${x.n}</span></td><td>${x.status}</td><td>${last}</td></tr>`;
+    }).join('');
+  }
+
+  function renderSuggest(s2, s3, why) {
+    const host = $('suggestGrid');
+    const whyEl = $('suggestWhy');
+    if (!host) return;
+
+    const boxes = [
+      { n: s2[0] || '--', tag: '2 ตัว • แนะนำ 1' },
+      { n: s2[1] || '--', tag: '2 ตัว • แนะนำ 2' },
+      { n: s3[0] || '---', tag: '3 ตัว • แนะนำ 1' },
+      { n: s3[1] || '---', tag: '3 ตัว • แนะนำ 2' },
+    ];
+
+    host.innerHTML = boxes.map(b => `
+      <div class="suggest-box">
+        <div class="suggest-num">${b.n}</div>
+        <div class="suggest-tag">${b.tag}</div>
+      </div>
+    `).join('');
+
+    if (whyEl) whyEl.innerHTML = why;
+  }
+
+  function updateMeta() {
+    setText('totalDraws', String(draws.length));
+    setText('latestDate', draws[0]?.date || '-');
+    setText('yearNow', String(new Date().getFullYear()));
+    setText('drawDateLabel', draws[0]?.date ? `อัพเดทงวดล่าสุด ${draws[0].date}` : 'งวดถัดไป');
+  }
+
+  function computeAndRender({ mode = 'balanced', personalize = false } = {}) {
+    if (!draws.length) {
+      const note = $('modelNote');
+      if (note) note.textContent = 'ไม่พบข้อมูลที่ใช้งานได้ใน lotto.json (ตรวจสอบรูปแบบข้อมูล)';
+      return;
+    }
+
+    const name = $('nameInput')?.value || '';
+    const dob = $('dobInput')?.value || '';
+    const tob = $('tobInput')?.value || '';
+    const seed = personalize ? numerologySeed({ name, dob, tob }) : 0;
+
+    const stats = buildStats();
+
+    renderTop2Table(topEntries(stats.last2Freq, CONFIG.topN2));
+    renderPosTable(stats.posFreq);
+    renderDueTable(dueList(stats.last2LastSeen, CONFIG.dueTop));
+
+    const ranked2 = score2Digit(stats, seed, mode);
+    const s2 = ranked2.slice(0, CONFIG.suggest2).map(x => x.n);
+
+    const front3 = score3Digit(stats.front3Freq, seed, mode);
+    const back3 = score3Digit(stats.back3Freq, seed, mode);
+    const s3 = [front3[0]?.n || '---', back3[0]?.n || '---'].slice(0, CONFIG.suggest3);
+
+    renderLuckyCircles(s2, s3);
+
+    const why = `
+      <b>เหตุผล (โปร่งใส):</b>
+      <ul>
+        <li>ใช้ความถี่เลขท้าย 2 ตัวจากข้อมูลย้อนหลัง (<code>back_2</code>) และทำ smoothing เพื่อลดอคติตัวอย่างน้อย</li>
+        <li>โหมด <b>${mode}</b> ปรับน้ำหนักระหว่าง Hot (ถี่) และ Due (ค้างนาน)</li>
+        <li>ปรับผลเฉพาะบุคคลด้วย Numerology seed = <b>${seed}</b> (ถ้ากดทำนายรายบุคคล)</li>
+      </ul>`;
+
+    renderSuggest(s2, s3, why);
+
+    const time = new Date().toLocaleString();
+    saveHistory({ time, mode, seed, suggest2: s2, suggest3: s3 });
+    renderHistory();
+
+    const note = $('modelNote');
+    if (note) note.textContent = 'โมเดลสถิติ + ตัวเลขศาสตร์ (เพื่อความบันเทิง)';
+  }
+
+  async function loadLocalData() {
+    const res = await fetch('lotto.json?ts=' + Date.now(), { cache: 'no-store' });
+    const json = await res.json();
+    if (!Array.isArray(json)) throw new Error('lotto.json must be an array');
+
+    // normalize + filter invalid rows (เช่น 000000)
+    const cleaned = [];
+    for (const row of json) {
+      const n = normalizeDraw(row);
+      if (n) cleaned.push(n);
+    }
+
+    draws = cleaned;
+  }
+
+  function bindUI() {
+    $('btnRefresh')?.addEventListener('click', () => {
+      const mode = $('modeInput')?.value || 'balanced';
+      computeAndRender({ mode, personalize: false });
+    });
+
+    $('btnPersonal')?.addEventListener('click', () => {
+      const mode = $('modeInput')?.value || 'balanced';
+      computeAndRender({ mode, personalize: true });
+    });
+  }
+
+  async function refresh() {
+    try {
+      await loadLocalData();
+      updateMeta();
+      computeAndRender({ mode: $('modeInput')?.value || 'balanced', personalize: false });
+    } catch (err) {
+      console.error(err);
+      const note = $('modelNote');
+      if (note) note.textContent = 'โหลดข้อมูลไม่สำเร็จ: ตรวจสอบไฟล์ lotto.json';
+    }
+  }
+
+  window.addEventListener('load', async () => {
+    localViewerIncrement();
+    bindUI();
+    renderHistory();
+
+    await refresh();
+
+    if (timer) clearInterval(timer);
+    timer = setInterval(refresh, CONFIG.refreshMs);
+  });
+})();
