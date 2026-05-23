@@ -426,6 +426,12 @@
       cleaned.push(n);
     }
 
+    cleaned.sort((a, b) => {
+      const da = new Date(parseToISO(a.date) || '1970-01-01');
+      const db = new Date(parseToISO(b.date) || '1970-01-01');
+      return db - da;
+    });
+
     draws = cleaned;
   }
 
@@ -445,6 +451,7 @@
     try {
       await loadLocalData();
       updateMeta();
+      fillYearAndPeriods(draws);
       renderHistory();
       // render current view (ไม่บันทึก history)
       const mode = $('modeInput')?.value || 'balanced';
@@ -458,10 +465,394 @@
 
   window.addEventListener('load', async () => {
     bindUI();
+    initTicketCheckUI();
     await updateGlobalViewerOncePerSession();
     await refresh();
 
     if (timer) clearInterval(timer);
     timer = setInterval(refresh, CONFIG.refreshMs);
   });
+// ===============================
+// ตรวจสลาก (GLO checking) via Worker proxy
+// ===============================
+// const WORKER_BASE = "https://ai-lottery.ritp157.workers.dev"; // duplicate definition removed
+
+// let checkInputCount = 10; // duplicate definition removed
+
+function parseToISO(dateStr) {
+  // รองรับ: "16/05/2569" (พ.ศ.) หรือ "5/16/2026" (ค.ศ.)
+  const s = String(dateStr || "").trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return ""; // ถ้า format อื่นให้ค่าว่าง
+
+  let a = parseInt(m[1], 10);
+  let b = parseInt(m[2], 10);
+  let y = parseInt(m[3], 10);
+
+  // ถ้าปีเป็น พ.ศ. (>=2400) แปลงเป็น ค.ศ.
+  if (y >= 2400) y = y - 543;
+
+  // เดาว่าเป็น dd/mm/yyyy แบบไทย ถ้าตัวแรก > 12
+  let day, month;
+  if (a > 12) { day = a; month = b; }
+  else if (b > 12) { day = b; month = a; }  // เผื่อเป็น mm/dd
+  else {
+    // ถ้าทั้งคู่ <= 12 ให้ถือแบบ dd/mm (ไทย) เป็นหลัก
+    day = a; month = b;
+  }
+
+  const dd = String(day).padStart(2, "0");
+  const mm = String(month).padStart(2, "0");
+  return `${y}-${mm}-${dd}`;
+}
+
+function buildCheckInputs() {
+  const host = document.getElementById("checkInputs");
+  if (!host) return;
+
+  const items = [];
+  for (let i = 1; i <= checkInputCount; i++) {
+    items.push(`
+      <div>
+        <label>เลขสลาก ${i}</label>
+        <input class="input checkNum" inputmode="numeric" maxlength="6"
+               placeholder="กรอกเลขสลาก 6 หลัก" />
+      </div>
+    `);
+  }
+  host.innerHTML = items.join("");
+}
+
+function fillYearAndPeriods(draws) {
+  const yearSel = document.getElementById("checkYear");
+  const periodSel = document.getElementById("checkPeriod");
+  if (!yearSel || !periodSel) return;
+
+  // สร้าง list งวดจาก lotto.json ของคุณ (ถ้ามี)
+  // ใช้ date string ตามในไฟล์ แต่ปีจะดึงจาก string
+  const periods = (Array.isArray(draws) ? draws : [])
+    .map(d => d?.date)
+    .filter(Boolean);
+
+  // สกัด year (พ.ศ.หรือค.ศ.) จากท้าย dd/mm/yyyy
+  const years = new Set();
+  periods.forEach(ds => {
+    const m = String(ds).match(/\/(\d{4})$/);
+    if (m) years.add(m[1]);
+  });
+
+  const yearList = Array.from(years).sort((a,b)=>Number(b)-Number(a));
+  yearSel.innerHTML = yearList.map(y => `<option value="${y}">${y}</option>`).join("");
+
+  // เติม period list ตามปีที่เลือก
+  function refreshPeriods() {
+    const y = yearSel.value;
+    const filtered = periods.filter(ds => String(ds).endsWith("/"+y) || String(ds).includes("/"+y));
+    periodSel.innerHTML = filtered.map(ds => `<option value="${ds}">${ds}</option>`).join("");
+  }
+
+  yearSel.onchange = refreshPeriods;
+  refreshPeriods();
+}
+
+async function checkTickets(draws) {
+  const resultEl = document.getElementById("checkResult");
+  const periodSel = document.getElementById("checkPeriod");
+  if (!resultEl || !periodSel) return;
+
+  const periodDateStr = periodSel.value;
+  const periodISO = parseToISO(periodDateStr);
+
+  if (!periodISO) {
+    resultEl.textContent = "❌ ไม่สามารถแปลงวันที่งวดเป็นรูปแบบ YYYY-MM-DD ได้";
+    return;
+  }
+
+  // ดึงเลขที่กรอก (สูงสุด 10)
+  const inputs = Array.from(document.querySelectorAll(".checkNum"));
+  const nums = inputs.map(i => (i.value || "").trim()).filter(v => v.length > 0);
+
+  if (nums.length === 0) {
+    resultEl.textContent = "❌ กรุณากรอกเลขสลากอย่างน้อย 1 หมายเลข";
+    return;
+  }
+  if (nums.length > 10) {
+    resultEl.textContent = "❌ ใส่ได้สูงสุด 10 หมายเลข";
+    return;
+  }
+
+  // validate 6 digits
+  for (const n of nums) {
+    if (!/^\d{6}$/.test(n)) {
+      resultEl.textContent = `❌ เลข "${n}" ต้องเป็นตัวเลข 6 หลักเท่านั้น`;
+      return;
+    }
+  }
+
+  // เตรียม payload ตาม API GLO [1](https://ntcth-my.sharepoint.com/personal/rittha_ntcth_onmicrosoft_com/Documents/%E0%B9%84%E0%B8%9F%E0%B8%A5%E0%B9%8C%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B9%81%E0%B8%8A%E0%B8%97%20Microsoft%20Copilot/app.js)
+  const payload = {
+    number: nums.map(n => ({ lottery_num: n })),
+    period_date: periodISO
+  };
+
+  resultEl.textContent = "⏳ กำลังตรวจผลรางวัล…";
+
+  try {
+    const res = await fetch(`${WORKER_BASE}/glo/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await res.text();
+
+    // แสดงผลแบบปลอดภัยก่อน (JSON ดิบ) แล้วค่อยปรับ render รายรางวัลทีหลังได้
+    resultEl.innerHTML = `
+      <b>✅ ผลการตรวจงวด ${periodDateStr} (${periodISO})</b>
+      <pre style="white-space:pre-wrap; margin-top:8px">${escapeHtml(text)}</pre>
+    `;
+  } catch (e) {
+    resultEl.textContent = "❌ ตรวจผลไม่ได้ (เช็ค Worker /glo/check และ KV bindings)";
+    console.log(e);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function initTicketCheckUI(draws) {
+  buildCheckInputs();
+  fillYearAndPeriods(draws);
+
+  document.getElementById("btnAddInput")?.addEventListener("click", () => {
+    if (checkInputCount >= 10) return;
+    checkInputCount += 1;
+    buildCheckInputs();
+  });
+
+  document.getElementById("btnResetInputs")?.addEventListener("click", () => {
+    checkInputCount = 10;
+    buildCheckInputs();
+    document.getElementById("checkResult").textContent =
+      "กรอกเลขสลาก 6 หลักได้สูงสุด 10 หมายเลข แล้วกด “ตรวจผลรางวัล”";
+  });
+
+  document.getElementById("btnCheck")?.addEventListener("click", () => {
+    checkTickets(draws);
+  });
+}
+
+// ===============================
+// ตรวจสลาก (GLO checking) via Worker proxy
+// dropdown ปี/งวด ดึงจาก lotto.json (draws)
+// ===============================
+const WORKER_BASE = "https://ai-lottery.ritp157.workers.dev";
+
+let checkInputCount = 10;
+
+// แปลง dd/mm/yyyy (พ.ศ./ค.ศ.) หรือ m/d/yyyy -> YYYY-MM-DD
+function parseToISO(dateStr) {
+  const s = String(dateStr || "").trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return "";
+
+  let a = parseInt(m[1], 10);
+  let b = parseInt(m[2], 10);
+  let y = parseInt(m[3], 10);
+
+  // ถ้าเป็น พ.ศ. แปลงเป็น ค.ศ.
+  if (y >= 2400) y -= 543;
+
+  // เดาว่าเป็น dd/mm ถ้า a>12, หรือถ้า b>12 ให้ถือว่าเป็น mm/dd
+  let day, month;
+  if (a > 12) { day = a; month = b; }
+  else if (b > 12) { day = b; month = a; }
+  else { day = a; month = b; }
+
+  return `${y}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+}
+
+function buildCheckInputs() {
+  const host = document.getElementById("checkInputs");
+  if (!host) return;
+
+  const items = [];
+  for (let i = 1; i <= checkInputCount; i++) {
+    items.push(`
+      <div>
+        <label>เลขสลาก ${i}</label>
+        <input class="input checkNum" inputmode="numeric" maxlength="6"
+               placeholder="กรอกเลขสลาก 6 หลัก" />
+      </div>
+    `);
+  }
+  host.innerHTML = items.join("");
+}
+
+// ดึงปี/งวดจาก draws (มาจาก lotto.json)
+function fillYearAndPeriodsFromLotto(draws) {
+  const yearSel = document.getElementById("checkYear");
+  const periodSel = document.getElementById("checkPeriod");
+  if (!yearSel || !periodSel) return;
+
+  const dates = (Array.isArray(draws) ? draws : [])
+    .map(d => d?.date)
+    .filter(Boolean);
+
+  // สกัดปีจาก pattern dd/mm/yyyy หรือ m/d/yyyy
+  const years = new Set();
+  dates.forEach(ds => {
+    const m = String(ds).match(/\/(\d{4})$/);
+    if (m) years.add(m[1]);
+  });
+
+  const yearList = Array.from(years).sort((a,b)=>Number(b)-Number(a));
+  yearSel.innerHTML = yearList.map(y => `<option value="${y}">${y}</option>`).join("");
+
+  function refreshPeriods() {
+    const y = yearSel.value;
+    const filtered = dates.filter(ds => String(ds).endsWith("/" + y));
+    periodSel.innerHTML = filtered.map(ds => `<option value="${ds}">${ds}</option>`).join("");
+  }
+
+  yearSel.onchange = refreshPeriods;
+  refreshPeriods();
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+async function checkTickets(draws) {
+  const resultEl = document.getElementById("checkResult");
+  const periodSel = document.getElementById("checkPeriod");
+  if (!resultEl || !periodSel) return;
+
+  const periodDateStr = periodSel.value;
+  const periodISO = parseToISO(periodDateStr);
+
+  if (!periodISO) {
+    resultEl.textContent = "❌ ไม่สามารถแปลงวันที่งวดเป็น YYYY-MM-DD ได้";
+    return;
+  }
+
+  const inputs = Array.from(document.querySelectorAll(".checkNum"));
+  const nums = inputs.map(i => (i.value || "").trim()).filter(v => v.length > 0);
+
+  if (nums.length === 0) {
+    resultEl.textContent = "❌ กรุณากรอกเลขสลากอย่างน้อย 1 หมายเลข";
+    return;
+  }
+  if (nums.length > 10) {
+    resultEl.textContent = "❌ ใส่ได้สูงสุด 10 หมายเลข";
+    return;
+  }
+
+  for (const n of nums) {
+    if (!/^\d{6}$/.test(n)) {
+      resultEl.textContent = `❌ เลข "${n}" ต้องเป็นตัวเลข 6 หลักเท่านั้น`;
+      return;
+    }
+  }
+
+  // Payload ตาม API GLO [1](https://ntcth-my.sharepoint.com/personal/rittha_ntcth_onmicrosoft_com/Documents/%E0%B9%84%E0%B8%9F%E0%B8%A5%E0%B9%8C%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B9%81%E0%B8%8A%E0%B8%97%20Microsoft%20Copilot/app.js)
+  const payload = {
+    number: nums.map(n => ({ lottery_num: n })),
+    period_date: periodISO
+  };
+
+  resultEl.textContent = "⏳ กำลังตรวจผลรางวัล…";
+
+  try {
+    const res = await fetch(`${WORKER_BASE}/glo/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await res.text();
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = null;
+    }
+
+    let html = `<b>✅ ผลการตรวจงวด ${escapeHtml(periodDateStr)} (${escapeHtml(periodISO)})</b>`;
+
+    if (body?.response?.result && Array.isArray(body.response.result)) {
+      const statusLabels = {
+        1: 'ถูกรางวัล',
+        2: 'ไม่ถูกรางวัล',
+        3: 'รอตรวจผล',
+        4: 'รอตรวจผล',
+      };
+
+      const itemsHtml = body.response.result.map(item => {
+        const status = item.statusType != null
+          ? statusLabels[item.statusType] || `สถานะ ${item.statusType}`
+          : 'สถานะไม่ระบุ';
+
+        const details = [];
+        if (item.date) details.push(`งวด: ${escapeHtml(item.date)}`);
+        if (item.number) details.push(`เลขสลาก: ${escapeHtml(item.number)}`);
+        details.push(`ผล: ${escapeHtml(status)}`);
+
+        if (Array.isArray(item.status_data) && item.status_data.length > 0) {
+          const detailLines = item.status_data.map((data, idx) => {
+            const fields = [];
+            if (data.prizeName) fields.push(`รางวัล: ${escapeHtml(data.prizeName)}`);
+            if (data.rank) fields.push(`อันดับ: ${escapeHtml(String(data.rank))}`);
+            if (data.prize) fields.push(`จำนวนเงิน: ${escapeHtml(String(data.prize))}`);
+            if (data.status) fields.push(`สถานะ: ${escapeHtml(data.status)}`);
+            if (data.detail) fields.push(`รายละเอียด: ${escapeHtml(data.detail)}`);
+            return `<div style="margin-left:12px;">${fields.length ? fields.join(' • ') : escapeHtml(JSON.stringify(data))}</div>`;
+          }).join('');
+          details.push(`ข้อมูลรางวัล:${detailLines}`);
+        }
+
+        return `<div class="check-item" style="margin-top:10px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;">${details.join('<br>')}</div>`;
+      }).join('');
+
+      html += `<div style="margin-top:10px">${itemsHtml}</div>`;
+    } else {
+      html += `<pre style="white-space:pre-wrap; margin-top:8px">${escapeHtml(text)}</pre>`;
+    }
+
+    resultEl.innerHTML = html;
+  } catch (e) {
+    resultEl.textContent = "❌ ตรวจผลไม่ได้ (เช็ค Worker /glo/check)";
+    console.log(e);
+  }
+}
+
+function initTicketCheckUI(draws) {
+  buildCheckInputs();
+  fillYearAndPeriodsFromLotto(draws);
+
+  document.getElementById("btnAddInput")?.addEventListener("click", () => {
+    if (checkInputCount >= 10) return;
+    checkInputCount += 1;
+    buildCheckInputs();
+  });
+
+  document.getElementById("btnResetInputs")?.addEventListener("click", () => {
+    checkInputCount = 10;
+    buildCheckInputs();
+    const el = document.getElementById("checkResult");
+    if (el) el.textContent = "กรอกเลขสลาก 6 หลักได้สูงสุด 10 หมายเลข แล้วกด “ตรวจผลรางวัล”";
+  });
+
+  document.getElementById("btnCheck")?.addEventListener("click", () => {
+    checkTickets(draws);
+  });
+}
+
 })();

@@ -38,6 +38,28 @@ function pick(obj, paths) {
   return undefined;
 }
 
+function parseDateValue(v) {
+  if (!v) return undefined;
+  if (typeof v === 'string') {
+    const iso = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (iso) {
+      return `${iso[3]}/${iso[2]}/${String(Number(iso[1]) + 543)}`;
+    }
+    return v;
+  }
+
+  if (typeof v === 'object') {
+    const d = String(v.date || v.day || '').padStart(2, '0');
+    const m = String(v.month || '').padStart(2, '0');
+    let y = String(v.year || v.yearThai || '');
+    if (!d || !m || !y) return undefined;
+    if (y.length === 4 && Number(y) < 2400) y = String(Number(y) + 543);
+    return `${d}/${m}/${y}`;
+  }
+
+  return undefined;
+}
+
 function norm(v, len) {
   const s = String(v ?? '').replace(/\D/g, '');
   return s.padStart(len, '0').slice(-len);
@@ -79,39 +101,93 @@ async function updateLotto() {
 
     // รองรับทั้งแบบ Worker simplified และแบบ raw (เผื่อคุณเปลี่ยน endpoint ในอนาคต)
     // สำหรับ Worker simplified ควรมี: date, first, front3_1, front3_2, back3_1, back3_2, last2
-    // สำหรับ raw อาจอยู่ใต้ response.data
+    // สำหรับ raw อาจอยู่ใต้ raw.response หรือ raw.response.data
 
     const date =
-      pick(api, ['date', 'response.data.displayDate', 'response.data.date', 'data.displayDate', 'data.date'])
+      parseDateValue(pick(api, [
+        'raw.response.displayDate',
+        'raw.response.date',
+        'raw.response.data.displayDate',
+        'raw.response.data.date',
+        'date',
+        'response.data.displayDate',
+        'response.data.date',
+        'data.displayDate',
+        'data.date'
+      ]))
       || new Date().toLocaleDateString('th-TH');
 
     const prize_1 = norm(
-      pick(api, ['first', 'prize_1', 'response.data.first', 'response.data.prize_1', 'data.first', 'data.prize_1']),
+      pick(api, [
+        'raw.response.data.first.number.0.value',
+        'first',
+        'prize_1',
+        'response.data.first',
+        'response.data.prize_1',
+        'data.first',
+        'data.prize_1'
+      ]),
       6
     );
 
     const front_3_1 = norm(
-      pick(api, ['front3_1', 'front_3_1', 'response.data.front3f.0', 'data.front3_1']),
+      pick(api, [
+        'raw.response.data.last3f.number.0.value',
+        'raw.response.data.last3f.0.value',
+        'front3_1',
+        'front_3_1',
+        'response.data.front3_1',
+        'data.front3_1'
+      ]),
       3
     );
 
     const front_3_2 = norm(
-      pick(api, ['front3_2', 'front_3_2', 'response.data.front3f.1', 'data.front3_2']),
+      pick(api, [
+        'raw.response.data.last3f.number.1.value',
+        'raw.response.data.last3f.1.value',
+        'front3_2',
+        'front_3_2',
+        'response.data.front3_2',
+        'data.front3_2'
+      ]),
       3
     );
 
     const back_3_1 = norm(
-      pick(api, ['back3_1', 'back_3_1', 'response.data.last3f.0', 'data.back3_1']),
+      pick(api, [
+        'raw.response.data.last3b.number.0.value',
+        'raw.response.data.last3b.0.value',
+        'back3_1',
+        'back_3_1',
+        'response.data.back3_1',
+        'data.back3_1'
+      ]),
       3
     );
 
     const back_3_2 = norm(
-      pick(api, ['back3_2', 'back_3_2', 'response.data.last3f.1', 'data.back3_2']),
+      pick(api, [
+        'raw.response.data.last3b.number.1.value',
+        'raw.response.data.last3b.1.value',
+        'back3_2',
+        'back_3_2',
+        'response.data.back3_2',
+        'data.back3_2'
+      ]),
       3
     );
 
     const back_2 = norm(
-      pick(api, ['last2', 'back_2', 'response.data.last2', 'data.last2', 'data.back_2']),
+      pick(api, [
+        'raw.response.data.last2.number.0.value',
+        'raw.response.data.last2.0.value',
+        'last2',
+        'back_2',
+        'response.data.last2',
+        'data.last2',
+        'data.back_2'
+      ]),
       2
     );
 

@@ -116,6 +116,39 @@
       </div>
 
       <div class="cards">
+
+<div class="card card-wide" id="ticket-check">
+  <div class="card-title">🧾 ตรวจสลากกินแบ่งรัฐบาล</div>
+
+  <div style="padding:12px 14px">
+    <div class="grid3" style="margin-bottom:10px">
+      <div>
+        <label>ปี</label>
+        <select id="checkYear" class="input"></select>
+      </div>
+      <div>
+        <label>งวดประจำวันที่</label>
+        <select id="checkPeriod" class="input"></select>
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button class="btn btn-wide" id="btnCheck">ตรวจผลรางวัล</button>
+      </div>
+    </div>
+
+    <div id="checkInputs" class="grid3"></div>
+
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap">
+      <button class="btn" id="btnAddInput" type="button">+ เพิ่มช่อง (สูงสุด 10)</button>
+      <button class="btn" id="btnResetInputs" type="button">รีเซ็ต</button>
+    </div>
+
+    <div class="why" id="checkResult" style="margin-top:12px">
+      กรอกเลขสลาก 6 หลักได้สูงสุด 10 หมายเลข แล้วกด “ตรวจผลรางวัล”
+    </div>
+  </div>
+</div>
+
         <div class="card">
           <div class="card-title">📊 เลขท้าย 2 ตัว (Most Frequent 2-Digit)</div>
           <table class="table">
