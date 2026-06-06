@@ -8,8 +8,27 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Prompt:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1865252536907079"
-     crossorigin="anonymous"></script>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LotteryApp" />
+  <link rel="apple-touch-icon" sizes="57x57" href="/icon.ico/apple-icon-57x57.png" />
+  <link rel="apple-touch-icon" sizes="60x60" href="/icon.ico/apple-icon-60x60.png" />
+  <link rel="apple-touch-icon" sizes="72x72" href="/icon.ico/apple-icon-72x72.png" />
+  <link rel="apple-touch-icon" sizes="76x76" href="/icon.ico/apple-icon-76x76.png" />
+  <link rel="apple-touch-icon" sizes="114x114" href="/icon.ico/apple-icon-114x114.png" />
+  <link rel="apple-touch-icon" sizes="120x120" href="/icon.ico/apple-icon-120x120.png" />
+  <link rel="apple-touch-icon" sizes="144x144" href="/icon.ico/apple-icon-144x144.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon.ico/apple-icon-152x152.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icon.ico/apple-icon-180x180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon.ico/android-icon-192x192.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon.ico/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/icon.ico/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icon.ico/favicon-16x16.png" />
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1865252536907079" crossorigin="anonymous"></script>
+
+
 </head>
 <body>
   <div class="bg" aria-hidden="true"></div>
@@ -40,7 +59,9 @@
       <a href="#contact">ติดต่อเรา</a>
     </nav>
 
-    <div class="nav-meta" title="page views">
+    <div class="nav-meta" title="live status">
+      <button id="installBtn" class="btn install-btn" type="button" hidden>📲 ติดตั้งแอป</button>
+      <span class="pill live-pill" id="realtimeStatus">Live • พร้อมรับอัปเดตแบบเรียลไทม์</span>
       <span class="pill">👁️ ผู้เข้าชมรวม <b id="viewer">0</b></span>
     </div>
   </header>
@@ -97,13 +118,46 @@
         </div>
       </div>
 
-      <div class="hero-right" aria-label="Hero artwork panel">
-        <div class="art-frame">
-          <img id="heroImg" src="hero-main.png" alt="ภาพจักรวาลและวงล้อจักรราศี" onerror="this.style.display='none';document.getElementById('artFallback').style.display='grid'" />
-          <div id="artFallback" class="art-fallback" style="display:none">วางไฟล์ภาพ: <code>hero-main.png</code></div>
+ 
+<div class="card">
+          <div class="card-title">🎯 เลขแนะนำงวดถัดไป (Suggested Numbers)</div>
+
+          <div class="suggest-recs">
+            <div class="recommend-row">
+              <div class="rec-panel rec-peach">
+                <div class="rec-head">เลขหน้า 3 ตัว (1) แนะนำ</div>
+                <div class="rec-body" id="recFront3_1">---</div>
+              </div>
+              <div class="rec-panel rec-peach">
+                <div class="rec-head">เลขหน้า 3 ตัว (2) แนะนำ</div>
+                <div class="rec-body" id="recFront3_2">---</div>
+              </div>
+            </div>
+
+            <div class="recommend-row">
+              <div class="rec-panel rec-green">
+                <div class="rec-head">เลขท้าย 3 ตัว (1) แนะนำ</div>
+                <div class="rec-body" id="recBack3_1">---</div>
+              </div>
+              <div class="rec-panel rec-green">
+                <div class="rec-head">เลขท้าย 3 ตัว (2) แนะนำ</div>
+                <div class="rec-body" id="recBack3_2">---</div>
+              </div>
+            </div>
+
+            <div class="suggest-big">
+              <div class="suggest-big-head">เลขแนะนำงวดถัดไป (Suggested Numbers)</div>
+              <table class="table suggest-table">
+                <thead><tr><th>ประเภท</th><th>เลขแนะนำ</th><th>เหตุผล</th></tr></thead>
+                <tbody id="suggestTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="why" id="suggestWhy"></div>
         </div>
-        <div class="art-caption">โหราศาสตร์เพื่อความโชคดีและความหวัง</div>
-      </div>
+
+
     </section>
 
     <section class="dash" id="insight">
@@ -175,11 +229,7 @@
           </table>
         </div>
 
-        <div class="card">
-          <div class="card-title">🎯 เลขแนะนำงวดถัดไป (Suggested Numbers)</div>
-          <div class="suggest-grid" id="suggestGrid"></div>
-          <div class="why" id="suggestWhy"></div>
-        </div>
+        
 
         <div class="card">
           <div class="card-title">✅ สถิติการทำนายถูก (Accuracy)</div>
@@ -202,7 +252,7 @@
         <div>
           <div class="footer-title">ฤทธาพยากรณ์ โทร: 095-760-2580</div>
           <div class="footer-sub">Premium lottery prediction & astrology platform • 
-            บริจาคสนับสนุนและพิ่มแรงโชคลาภที่ พ้อมเพย์: 095-760-2580 นาย ฤทธา ผายวงษา</div>
+            บริจาคสนับสนุนและเพิ่มแรงโชคลาภที่ พ้อมเพย์: 095-760-2580 นายฤทธา ผายวงษา</div>
         </div>
         <div class="footer-note">© <span id="yearNow"></span> • Designed for Public Use</div>
       </div>
@@ -210,5 +260,57 @@
   </main>
 
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((registration) => {
+          console.log('Service Worker registered successfully:', registration.scope);
+        }).catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
+      });
+    }
+
+    const installBtn = document.getElementById('installBtn');
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredPrompt = event;
+      if (installBtn && !window.matchMedia('(display-mode: standalone)').matches) {
+        installBtn.hidden = false;
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+          installBtn.hidden = true;
+          return;
+        }
+
+        installBtn.disabled = true;
+        installBtn.textContent = 'กำลังเปิดตัวติดตั้ง…';
+
+        try {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('Install prompt outcome:', outcome);
+        } catch (error) {
+          console.error('Install prompt error:', error);
+        } finally {
+          deferredPrompt = null;
+          installBtn.hidden = true;
+        }
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA installed successfully');
+      if (installBtn) {
+        installBtn.hidden = true;
+      }
+    });
+  </script>
 </body>
 </html>

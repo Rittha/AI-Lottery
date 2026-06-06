@@ -10,6 +10,82 @@ const fs = require('fs');
 // ✅ ชี้ไปที่ Worker โดเมนเดิม (root "/" ที่คุณให้คืน simplified JSON)
 // ถ้าคุณเปลี่ยนให้ root ไม่คืนข้อมูลแล้ว ให้ระบุเป็น "/glo/latest" และแก้ mapping ด้านล่าง
 const API_URL = 'https://ai-lottery.ritp157.workers.dev/';
+const RAW_DATA_PATHS = {
+  date: [
+    'raw.response.displayDate',
+    'raw.response.data.displayDate',
+    'raw.response.data.date',
+    'raw.response.date',
+    'response.data.displayDate',
+    'response.data.date',
+    'data.displayDate',
+    'data.date',
+    'date'
+  ],
+  prize_1: [
+    'raw.response.data.first.number.0.value',
+    'raw.response.data.first.number[0].value',
+    'raw.response.first.number.0.value',
+    'raw.response.first.number[0].value',
+    'response.data.first.number.0.value',
+    'response.data.first.number[0].value',
+    'data.first.number.0.value',
+    'data.first.number[0].value',
+    'first',
+    'prize_1'
+  ],
+  front_3_1: [
+    'raw.response.data.last3f.number.0.value',
+    'raw.response.data.last3f.number[0].value',
+    'raw.response.last3f.number.0.value',
+    'raw.response.last3f.number[0].value',
+    'response.data.front3_1',
+    'data.front3_1',
+    'front3_1',
+    'front_3_1'
+  ],
+  front_3_2: [
+    'raw.response.data.last3f.number.1.value',
+    'raw.response.data.last3f.number[1].value',
+    'raw.response.last3f.number.1.value',
+    'raw.response.last3f.number[1].value',
+    'response.data.front3_2',
+    'data.front3_2',
+    'front3_2',
+    'front_3_2'
+  ],
+  back_3_1: [
+    'raw.response.data.last3b.number.0.value',
+    'raw.response.data.last3b.number[0].value',
+    'raw.response.last3b.number.0.value',
+    'raw.response.last3b.number[0].value',
+    'response.data.back3_1',
+    'data.back3_1',
+    'back3_1',
+    'back_3_1'
+  ],
+  back_3_2: [
+    'raw.response.data.last3b.number.1.value',
+    'raw.response.data.last3b.number[1].value',
+    'raw.response.last3b.number.1.value',
+    'raw.response.last3b.number[1].value',
+    'response.data.back3_2',
+    'data.back3_2',
+    'back3_2',
+    'back_3_2'
+  ],
+  back_2: [
+    'raw.response.data.last2.number.0.value',
+    'raw.response.data.last2.number[0].value',
+    'raw.response.last2.number.0.value',
+    'raw.response.last2.number[0].value',
+    'response.data.last2',
+    'data.last2',
+    'data.back_2',
+    'last2',
+    'back_2'
+  ]
+};
 
 const DIG6 = /^\d{6}$/;
 const DIG3 = /^\d{3}$/;
@@ -103,93 +179,14 @@ async function updateLotto() {
     // สำหรับ Worker simplified ควรมี: date, first, front3_1, front3_2, back3_1, back3_2, last2
     // สำหรับ raw อาจอยู่ใต้ raw.response หรือ raw.response.data
 
-    const date =
-      parseDateValue(pick(api, [
-        'raw.response.displayDate',
-        'raw.response.date',
-        'raw.response.data.displayDate',
-        'raw.response.data.date',
-        'date',
-        'response.data.displayDate',
-        'response.data.date',
-        'data.displayDate',
-        'data.date'
-      ]))
-      || new Date().toLocaleDateString('th-TH');
+    const date = parseDateValue(pick(api, RAW_DATA_PATHS.date)) || new Date().toLocaleDateString('th-TH');
 
-    const prize_1 = norm(
-      pick(api, [
-        'raw.response.data.first.number.0.value',
-        'first',
-        'prize_1',
-        'response.data.first',
-        'response.data.prize_1',
-        'data.first',
-        'data.prize_1'
-      ]),
-      6
-    );
-
-    const front_3_1 = norm(
-      pick(api, [
-        'raw.response.data.last3f.number.0.value',
-        'raw.response.data.last3f.0.value',
-        'front3_1',
-        'front_3_1',
-        'response.data.front3_1',
-        'data.front3_1'
-      ]),
-      3
-    );
-
-    const front_3_2 = norm(
-      pick(api, [
-        'raw.response.data.last3f.number.1.value',
-        'raw.response.data.last3f.1.value',
-        'front3_2',
-        'front_3_2',
-        'response.data.front3_2',
-        'data.front3_2'
-      ]),
-      3
-    );
-
-    const back_3_1 = norm(
-      pick(api, [
-        'raw.response.data.last3b.number.0.value',
-        'raw.response.data.last3b.0.value',
-        'back3_1',
-        'back_3_1',
-        'response.data.back3_1',
-        'data.back3_1'
-      ]),
-      3
-    );
-
-    const back_3_2 = norm(
-      pick(api, [
-        'raw.response.data.last3b.number.1.value',
-        'raw.response.data.last3b.1.value',
-        'back3_2',
-        'back_3_2',
-        'response.data.back3_2',
-        'data.back3_2'
-      ]),
-      3
-    );
-
-    const back_2 = norm(
-      pick(api, [
-        'raw.response.data.last2.number.0.value',
-        'raw.response.data.last2.0.value',
-        'last2',
-        'back_2',
-        'response.data.last2',
-        'data.last2',
-        'data.back_2'
-      ]),
-      2
-    );
+    const prize_1 = norm(pick(api, RAW_DATA_PATHS.prize_1), 6);
+    const front_3_1 = norm(pick(api, RAW_DATA_PATHS.front_3_1), 3);
+    const front_3_2 = norm(pick(api, RAW_DATA_PATHS.front_3_2), 3);
+    const back_3_1 = norm(pick(api, RAW_DATA_PATHS.back_3_1), 3);
+    const back_3_2 = norm(pick(api, RAW_DATA_PATHS.back_3_2), 3);
+    const back_2 = norm(pick(api, RAW_DATA_PATHS.back_2), 2);
 
     const newDraw = { date, prize_1, front_3_1, front_3_2, back_3_1, back_3_2, back_2 };
 
