@@ -318,43 +318,100 @@
 (function () {
   "use strict";
 
-  // ลิงก์ข้อเสนอทั้งหมดจากไฟล์ CSV/Excel (30 รายการ)
-  const randomOfferLinks = ['https://s.shopee.co.th/9AP6lEweTg', 'https://s.shopee.co.th/905gYvxHof', 'https://s.shopee.co.th/8pmGMcxv9e', 'https://s.shopee.co.th/8fSqAJyYUd', 'https://s.shopee.co.th/8V9Py0zBpc', 'https://s.shopee.co.th/8KpzlhzpAb', 'https://s.shopee.co.th/8AWZZP0SVa', 'https://s.shopee.co.th/80D9N615qZ', 'https://s.shopee.co.th/AUuULgrZm4', 'https://s.shopee.co.th/AKb49NsD73', 'https://s.shopee.co.th/AAHdx4sqS2', 'https://s.shopee.co.th/9zyDkltTn1', 'https://s.shopee.co.th/9penYSu780', 'https://s.shopee.co.th/9fLNM9ukSz', 'https://s.shopee.co.th/9V1x9qvNny', 'https://s.shopee.co.th/9KiWxXw18x', 'https://s.shopee.co.th/6VOLaL6ntQ', 'https://s.shopee.co.th/6L4vO27REP', 'https://s.shopee.co.th/6AlVBj84ZO', 'https://s.shopee.co.th/60S4zQ8huN', 'https://s.shopee.co.th/5q8en79LFM', 'https://s.shopee.co.th/5fpEao9yaL', 'https://s.shopee.co.th/5VVoOVAbvK', 'https://s.shopee.co.th/5LCOCCBFGJ', 'https://s.shopee.co.th/7ptjAn1jBo', 'https://s.shopee.co.th/7faIyU2MWn', 'https://s.shopee.co.th/7VGsmB2zrm', 'https://s.shopee.co.th/7KxSZs3dCl', 'https://s.shopee.co.th/7Ae2NZ4GXk', 'https://s.shopee.co.th/70KcBG4tsj'];
+  // ลิงก์ข้อเสนอทั้งหมด
+  const randomOfferLinks = [
+    'https://s.shopee.co.th/9AP6lEweTg',
+    'https://s.shopee.co.th/905gYvxHof',
+    'https://s.shopee.co.th/8pmGMcxv9e',
+    'https://s.shopee.co.th/8fSqAJyYUd',
+    'https://s.shopee.co.th/8V9Py0zBpc',
+    'https://s.shopee.co.th/8KpzlhzpAb',
+    'https://s.shopee.co.th/8AWZZP0SVa',
+    'https://s.shopee.co.th/80D9N615qZ',
+    'https://s.shopee.co.th/AUuULgrZm4',
+    'https://s.shopee.co.th/AKb49NsD73',
+    'https://s.shopee.co.th/AAHdx4sqS2',
+    'https://s.shopee.co.th/9zyDkltTn1',
+    'https://s.shopee.co.th/9penYSu780',
+    'https://s.shopee.co.th/9fLNM9ukSz',
+    'https://s.shopee.co.th/9V1x9qvNny',
+    'https://s.shopee.co.th/9KiWxXw18x',
+    'https://s.shopee.co.th/6VOLaL6ntQ',
+    'https://s.shopee.co.th/6L4vO27REP',
+    'https://s.shopee.co.th/6AlVBj84ZO',
+    'https://s.shopee.co.th/60S4zQ8huN',
+    'https://s.shopee.co.th/5q8en79LFM',
+    'https://s.shopee.co.th/5fpEao9yaL',
+    'https://s.shopee.co.th/5VVoOVAbvK',
+    'https://s.shopee.co.th/5LCOCCBFGJ',
+    'https://s.shopee.co.th/7ptjAn1jBo',
+    'https://s.shopee.co.th/7faIyU2MWn',
+    'https://s.shopee.co.th/7VGsmB2zrm',
+    'https://s.shopee.co.th/7KxSZs3dCl',
+    'https://s.shopee.co.th/7Ae2NZ4GXk',
+    'https://s.shopee.co.th/70KcBG4tsj',
+    'https://shopee.co.th/shop/167312359',
+    'https://shopee.co.th/shop/1264213693',
+    'https://shopee.co.th/shop/365994831',
+    'https://shopee.co.th/shop/1264209270',
+    'https://shopee.co.th/shop/1266827457',
+    'https://shopee.co.th/shop/816547426',
+    'https://shopee.co.th/shop/1440444534',
+    'https://shopee.co.th/shop/357739088',
+    'https://shopee.co.th/shop/1578692532',
+    'https://shopee.co.th/shop/1013028904',
+    'https://shopee.co.th/shop/1617703573',
+    'https://shopee.co.th/shop/105256413',
+    'https://shopee.co.th/shop/1618493272',
+    'https://shopee.co.th/shop/550096763',
+    'https://shopee.co.th/shop/34004962',
+    'https://shopee.co.th/shop/1402727250',
+    'https://shopee.co.th/shop/1080178732',
+    'https://shopee.co.th/shop/1912552824',
+    'https://shopee.co.th/shop/1229667645',
+    'https://shopee.co.th/shop/230079389',
 
-  // สุ่มและเปิดลิงก์เมื่อผู้ใช้กดปุ่ม "คำนวณใหม่"
+    
+  ];
+
+  // เปิดลิงก์แบบสุ่ม
   function openRandomOffer() {
-    if (!Array.isArray(randomOfferLinks) || randomOfferLinks.length === 0) {
-      console.warn("ไม่พบลิงก์ข้อเสนอ");
-      return;
-    }
+    if (!randomOfferLinks.length) return;
 
-    const randomIndex = Math.floor(Math.random() * randomOfferLinks.length);
-    const randomUrl = randomOfferLinks[randomIndex];
+    const randomUrl =
+      randomOfferLinks[Math.floor(Math.random() * randomOfferLinks.length)];
 
-    // เปิดจากเหตุการณ์ click โดยตรง เพื่อให้ Browser อนุญาต popup ได้ง่ายที่สุด
     const newTab = window.open(randomUrl, "_blank");
 
     if (!newTab) {
-      console.warn("Browser บล็อกการเปิด New Tab:", randomUrl);
+      console.warn("Browser บล็อก Popup:", randomUrl);
     }
   }
 
-  function attachRandomOfferToRefreshButton() {
-    const btnRefresh = document.getElementById("btnRefresh");
+  // ผูกกับปุ่ม "ทำนายเลขนำโชคของฉัน"
+  function attachRandomOffer() {
+    const btnPersonal = document.getElementById("btnPersonal");
 
-    if (!btnRefresh) {
-      console.warn("ไม่พบปุ่ม #btnRefresh");
+    if (!btnPersonal) {
+      console.warn("ไม่พบปุ่ม #btnPersonal");
       return;
     }
 
-    // ใช้ capture phase เพื่อให้คำสั่งเปิดแท็บเกิดจาก click โดยตรง
-    btnRefresh.addEventListener("click", openRandomOffer, true);
+    btnPersonal.addEventListener(
+      "click",
+      function () {
+        openRandomOffer();
+      },
+      true
+    );
+
+    console.log("เชื่อมต่อปุ่ม btnPersonal เรียบร้อย");
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", attachRandomOfferToRefreshButton);
+    document.addEventListener("DOMContentLoaded", attachRandomOffer);
   } else {
-    attachRandomOfferToRefreshButton();
+    attachRandomOffer();
   }
 })();
 /* RANDOM OFFER TAB END */
