@@ -1,144 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101827">
-  <meta name="description" content="วิเคราะห์สถิติผลสลากย้อนหลังและตัวเลขศาสตร์เพื่อความบันเทิง">
-  <title>ศรัทธาพยากรณ์ | วิเคราะห์สถิติและตัวเลข</title>
+  <meta name="theme-color" content="#101b2b">
+  <meta name="description" content="วิเคราะห์สถิติหวยย้อนหลังและตรวจผลสลากจากฐานข้อมูลที่บันทึกไว้">
+  <title>AI Lottery | วิเคราะห์สถิติและตรวจสลาก</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Cinzel:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="site-header">
-    <a class="brand" href="#home" aria-label="ศรัทธาพยากรณ์ หน้าแรก">
-      <span class="brand-symbol" aria-hidden="true">✦</span>
-      <span><strong>ศรัทธาพยากรณ์</strong><small>STATISTICS & NUMEROLOGY</small></span>
-    </a>
-    <nav class="main-nav" aria-label="เมนูหลัก">
-      <a href="#home">หน้าแรก</a>
-      <a href="#statistics">สถิติ</a>
-      <a href="#personal">วิเคราะห์ส่วนบุคคล</a>
-      <a href="#history">ประวัติ</a>
+  <header class="topbar">
+    <a class="brand" href="#overview" aria-label="AI Lottery หน้าแรก"><span class="brand-mark">A</span><span><b>AI LOTTERY</b><small>STATISTICAL INSIGHT</small></span></a>
+    <nav class="nav" aria-label="เมนูหลัก">
+      <a href="#overview" class="active">ภาพรวม</a><a href="#analysis">วิเคราะห์เลข</a><a href="#checker">ตรวจสลาก</a><a href="#history">ข้อมูลย้อนหลัง</a>
     </nav>
-    <div class="header-status"><span class="status-dot"></span><span id="modelNote">กำลังโหลดข้อมูล…</span></div>
+    <div class="system-state"><i id="statusDot"></i><span id="loadStatus">กำลังโหลดข้อมูล</span></div>
   </header>
 
-  <main class="container" id="home">
-    <section class="intro">
-      <div>
-        <p class="eyebrow">DATA-DRIVEN NUMBER INSIGHT</p>
-        <h1>อ่านสถิติให้เข้าใจ<br><span>ก่อนเลือกตัวเลข</span></h1>
-        <p class="intro-copy">วิเคราะห์ผลย้อนหลังด้วยความถี่ แนวโน้ม และตำแหน่งตัวเลข พร้อมตัวเลือกตัวเลขศาสตร์เพื่อความบันเทิง</p>
-        <div class="draw-meta">
-          <span>ข้อมูลล่าสุด <strong id="latestDate">—</strong></span>
-          <span>จำนวนข้อมูล <strong id="totalDraws">0</strong> งวด</span>
-        </div>
+  <main class="shell">
+    <section class="hero" id="overview">
+      <div class="hero-copy">
+        <div class="eyebrow"><span></span> DATA-DRIVEN LOTTERY ANALYSIS</div>
+        <h1>เข้าใจข้อมูล<br><em>ก่อนเลือกตัวเลข</em></h1>
+        <p>วิเคราะห์ผลสลากย้อนหลังด้วยความถี่ น้ำหนักข้อมูลล่าสุด และตำแหน่งตัวเลข พร้อมระบบตรวจสลากจากงวดที่มีในฐานข้อมูล</p>
+        <div class="hero-actions"><a class="btn primary" href="#analysis">เริ่มวิเคราะห์ <span>↗</span></a><a class="btn secondary" href="#checker">ตรวจสลาก</a></div>
       </div>
-      <div class="hero-side">
-        <div class="moon-mark" aria-hidden="true">☾</div>
-        <p>ผลลัพธ์เป็นคะแนนจัดอันดับจากข้อมูลย้อนหลัง<br>ไม่ใช่การรับประกันผลรางวัล</p>
-      </div>
-    </section>
-
-    <section class="feature-card" aria-labelledby="recommend-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">NEXT DRAW • MODEL OUTPUT</p>
-          <h2 id="recommend-title">ชุดตัวเลขแนะนำ</h2>
-        </div>
-        <button class="button button-quiet" id="btnRefresh" type="button">↻ คำนวณใหม่</button>
-      </div>
-      <div class="recommend-layout">
-        <div class="lucky-area">
-          <div class="lucky-label">เลข 2 ตัวที่ได้คะแนนสูง</div>
-          <div class="lucky-row" id="luckyCircles" aria-live="polite">
-            <span class="empty-state">กำลังคำนวณ…</span>
-          </div>
-          <div class="lucky-label secondary-label">เลข 3 ตัวจากข้อมูลย้อนหลัง</div>
-          <div class="three-digit-row" id="threeDigitPicks">—</div>
-        </div>
-        <aside class="recommend-note">
-          <span class="note-icon">✧</span>
-          <strong>หลักการจัดอันดับ</strong>
-          <p id="suggestWhy">ระบบจะอธิบายองค์ประกอบคะแนนหลังโหลดข้อมูล</p>
-        </aside>
-      </div>
-      <div class="suggest-grid" id="suggestGrid"></div>
-    </section>
-
-    <section class="stats-section" id="statistics">
-      <div class="section-heading">
-        <div><p class="eyebrow">HISTORICAL DATA</p><h2>ภาพรวมสถิติ</h2></div>
-        <span class="subtle" id="statsCaption">อ้างอิงจากเลขท้าย 2 ตัวใน lotto.json</span>
-      </div>
-      <div class="stats-grid">
-        <article class="stat-card"><span>เลขที่พบถี่ที่สุด</span><strong id="statHot">—</strong><small id="statHotCount">—</small></article>
-        <article class="stat-card"><span>เลขที่ไม่พบในชุดข้อมูล</span><strong id="statMissing">—</strong><small>จากเลขทั้งหมด 00–99</small></article>
-        <article class="stat-card"><span>จำนวนงวดที่นำมาวิเคราะห์</span><strong id="statDraws">—</strong><small>หลังตัดข้อมูลซ้ำและไม่ถูกต้อง</small></article>
-      </div>
-
-      <div class="analysis-grid">
-        <article class="content-card">
-          <div class="card-heading"><div><h3>ความถี่เลขท้าย 2 ตัว</h3><p>เรียงจากจำนวนครั้งที่พบมากที่สุด</p></div><span class="mini-tag">TOP 10</span></div>
-          <div class="table-wrap"><table class="data-table"><thead><tr><th>อันดับ</th><th>เลข</th><th>จำนวนครั้ง</th><th>สัดส่วนย้อนหลัง</th></tr></thead><tbody id="tblTop2"></tbody></table></div>
-        </article>
-        <article class="content-card">
-          <div class="card-heading"><div><h3>วิเคราะห์ตำแหน่งเลข 2 ตัว</h3><p>แยกหลักสิบและหลักหน่วย</p></div><span class="mini-tag">POSITION</span></div>
-          <div class="table-wrap"><table class="data-table"><thead><tr><th>ตำแหน่ง</th><th>เลขเด่น</th><th>จำนวนครั้ง</th><th>สัดส่วนย้อนหลัง</th></tr></thead><tbody id="tblPos"></tbody></table></div>
-        </article>
-        <article class="content-card">
-          <div class="card-heading"><div><h3>ระยะห่างจากการปรากฏล่าสุด</h3><p>ตัวเลขที่ไม่พบหรือห่างจากงวดล่าสุด</p></div><span class="mini-tag">GAP</span></div>
-          <div class="table-wrap"><table class="data-table"><thead><tr><th>อันดับ</th><th>เลข</th><th>สถานะ</th><th>ห่าง</th></tr></thead><tbody id="tblDue"></tbody></table></div>
-          <p class="table-footnote">เลขที่ห่างนานไม่ได้มีโอกาสออกมากขึ้นโดยอัตโนมัติ</p>
-        </article>
-        <article class="content-card">
-          <div class="card-heading"><div><h3>เลข 2 ตัวคะแนนสูง</h3><p>คะแนนผสมจากหลายปัจจัย</p></div><span class="mini-tag">RANKING</span></div>
-          <div id="rankDetails" class="rank-details">รอคำนวณ</div>
-        </article>
+      <div class="hero-panel">
+        <div class="panel-top"><span>DATABASE STATUS</span><span class="live-pill"><i></i> LOCAL DATA</span></div>
+        <div class="latest-date-label">งวดล่าสุดในฐานข้อมูล</div><div class="latest-date" id="latestDate">—</div>
+        <div class="panel-divider"></div>
+        <div class="panel-metrics"><div><strong id="totalDraws">—</strong><span>จำนวนงวด</span></div><div><strong id="lastTwo">—</strong><span>เลขท้าย 2 ตัวล่าสุด</span></div></div>
+        <div class="panel-foot">อัปเดตจากไฟล์ <code>lotto.json</code></div>
       </div>
     </section>
 
-    <section class="personal-section" id="personal">
-      <div class="personal-copy">
-        <p class="eyebrow">PERSONAL NUMEROLOGY</p>
-        <h2>เพิ่มตัวเลขศาสตร์ส่วนบุคคล</h2>
-        <p>ใช้วันเกิดและชื่อเป็นองค์ประกอบเสริมในการจัดอันดับเท่านั้น ไม่ได้เปลี่ยนความน่าจะเป็นของการออกรางวัล</p>
+    <section class="section" id="analysis">
+      <div class="section-head"><div><div class="eyebrow">01 / NUMBER ANALYSIS</div><h2>วิเคราะห์เลข</h2><p>จัดอันดับจากข้อมูลย้อนหลัง ไม่ใช่การทำนายผลที่รับประกันได้</p></div><div class="controls"><label for="modeSelect">รูปแบบการวิเคราะห์</label><select id="modeSelect"><option value="balanced">สมดุล</option><option value="recent">เน้นข้อมูลล่าสุด</option><option value="frequency">เน้นความถี่</option></select><button id="refreshBtn" class="icon-btn" type="button" title="คำนวณใหม่">↻</button></div></div>
+      <div class="recommend-card">
+        <div class="recommend-title"><div><span class="tag">MODEL OUTPUT</span><h3>เลข 2 ตัวคะแนนสูง</h3></div><span class="muted" id="analysisBasis">กำลังประมวลผล</span></div>
+        <div class="number-picks" id="numberPicks"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>
+        <div class="model-explain" id="modelExplain">ระบบจะแสดงคำอธิบายหลังจากโหลดข้อมูลสำเร็จ</div>
       </div>
-      <div class="personal-form">
-        <div class="form-row">
-          <label>ชื่อ-นามสกุล <input id="nameInput" class="input" type="text" maxlength="80" placeholder="ระบุชื่อ (ไม่บังคับ)" autocomplete="name"></label>
-          <label>วันเกิด <input id="dobInput" class="input" type="date" required></label>
-          <label>เวลาเกิด <input id="tobInput" class="input" type="time"></label>
-        </div>
-        <div class="form-actions">
-          <label class="mode-label">รูปแบบวิเคราะห์
-            <select id="modeInput" class="input">
-              <option value="balanced">สมดุล</option>
-              <option value="hot">เน้นแนวโน้มและความถี่</option>
-              <option value="due">เน้นระยะห่าง</option>
-            </select>
-          </label>
-          <button class="button" id="btnPersonal" type="button">วิเคราะห์ส่วนบุคคล</button>
-        </div>
-        <p class="form-feedback" id="personalFeedback" role="status"></p>
+      <div class="grid two-col">
+        <article class="card"><div class="card-head"><div><h3>ความถี่เลขท้าย 2 ตัว</h3><p>จำนวนครั้งที่พบในข้อมูลทั้งหมด</p></div><span class="tag">TOP 10</span></div><div id="frequencyBars" class="bar-list"></div></article>
+        <article class="card"><div class="card-head"><div><h3>ตำแหน่งตัวเลขที่พบมาก</h3><p>แยกหลักสิบและหลักหน่วย</p></div><span class="tag">DIGIT POSITION</span></div><div id="positionStats" class="position-grid"></div></article>
+      </div>
+      <div class="grid two-col lower-grid">
+        <article class="card"><div class="card-head"><div><h3>เลขที่ห่างจากการปรากฏล่าสุด</h3><p>จำนวนงวดที่ไม่พบเลขนั้น</p></div><span class="tag">GAP</span></div><div id="gapList" class="gap-list"></div><p class="footnote">การไม่ปรากฏมานานไม่ได้ทำให้เลขนั้นมีโอกาสออกมากขึ้นในงวดถัดไป</p></article>
+        <article class="card"><div class="card-head"><div><h3>สรุปองค์ประกอบคะแนน</h3><p>เปิดเผยหลักเกณฑ์ที่ใช้จัดอันดับ</p></div><span class="tag">SCORING</span></div><div class="score-legend"><div><i class="dot freq"></i><span>ความถี่สะสม</span><b>35%</b></div><div><i class="dot recent"></i><span>น้ำหนักข้อมูลล่าสุด</span><b>45%</b></div><div><i class="dot position"></i><span>สัดส่วนหลักสิบ/หน่วย</span><b>20%</b></div></div><p class="footnote">คะแนนเป็นเพียงดัชนีเปรียบเทียบข้อมูลย้อนหลัง ไม่ใช่ความน่าจะเป็นจริงของการออกรางวัล</p></article>
       </div>
     </section>
 
-    <section class="history-section" id="history">
-      <div class="section-heading"><div><p class="eyebrow">LOCAL RECORD</p><h2>ประวัติการวิเคราะห์</h2></div><span class="subtle">บันทึกไว้ในอุปกรณ์นี้</span></div>
-      <div class="history-list" id="history"><div class="empty-state">ยังไม่มีประวัติการวิเคราะห์</div></div>
+    <section class="section checker-section" id="checker">
+      <div class="section-head"><div><div class="eyebrow">02 / TICKET CHECKER</div><h2>ตรวจสลากกินแบ่งรัฐบาล</h2><p>ตรวจเลขสลากกับผลรางวัลที่มีอยู่ในฐานข้อมูล</p></div></div>
+      <div class="checker-card">
+        <div class="checker-controls"><label>เลือกงวดที่ต้องการตรวจ<select id="drawSelect"></select></label><div class="check-hint">รองรับเลขสลาก 6 หลัก สูงสุด 10 หมายเลข</div></div>
+        <div id="ticketInputs" class="ticket-inputs"><label class="ticket-field"><span>หมายเลข 1</span><input inputmode="numeric" maxlength="6" placeholder="000000"></label></div>
+        <div class="checker-actions"><button id="addTicket" class="btn secondary" type="button">＋ เพิ่มหมายเลข</button><button id="checkTickets" class="btn primary" type="button">ตรวจผลรางวัล <span>→</span></button><button id="clearTickets" class="text-btn" type="button">ล้างข้อมูล</button></div>
+        <div id="checkSummary" class="check-summary" aria-live="polite">กรอกเลขสลากแล้วกด “ตรวจผลรางวัล”</div>
+        <div id="checkResults" class="result-list"></div>
+      </div>
+      <div class="prize-note"><b>ขอบเขตการตรวจ:</b> ตรวจรางวัลที่ 1, เลขหน้า 3 ตัว, เลขท้าย 3 ตัว และเลขท้าย 2 ตัว ตามข้อมูลใน <code>lotto.json</code> เท่านั้น ไม่รวมรางวัลอื่นที่ไม่มีอยู่ในไฟล์ข้อมูล</div>
     </section>
 
-    <p class="disclaimer">คำเตือน: สลากกินแบ่งรัฐบาลเป็นการสุ่ม ผลการวิเคราะห์นี้จัดทำเพื่อการศึกษาและความบันเทิงเท่านั้น ไม่สามารถทำนายผลลัพธ์ในอนาคตหรือรับประกันการถูกรางวัลได้ โปรดใช้วิจารณญาณและเล่นอย่างรับผิดชอบ</p>
+    <section class="section" id="history">
+      <div class="section-head"><div><div class="eyebrow">03 / HISTORICAL RESULTS</div><h2>ผลรางวัลย้อนหลัง</h2><p>ตรวจสอบข้อมูลต้นทางที่ระบบใช้คำนวณ</p></div><div class="history-filter"><label for="historySearch">ค้นหาวันที่หรือเลข</label><input id="historySearch" type="search" placeholder="เช่น 85 หรือ 01/11/2569"></div></div>
+      <div class="table-card"><div class="table-scroll"><table><thead><tr><th>งวดวันที่</th><th>รางวัลที่ 1</th><th>เลขหน้า 3 ตัว</th><th>เลขท้าย 3 ตัว</th><th>เลขท้าย 2 ตัว</th></tr></thead><tbody id="historyRows"></tbody></table></div><div class="table-footer" id="historyCount">—</div></div>
+    </section>
+    <footer class="disclaimer">หมายเหตุ: ผลสลากเป็นการสุ่มทางกฎหมาย สถิติในอดีตไม่สามารถยืนยันหรือรับประกันผลในอนาคตได้ ใช้ข้อมูลนี้เพื่อการศึกษาและความบันเทิงเท่านั้น</footer>
   </main>
-
-  <footer class="site-footer">
-    <div><strong>ศรัทธาพยากรณ์</strong><span>Statistical insight • Numerology for entertainment</span></div>
-    <span>© <span id="yearNow"></span></span>
-  </footer>
-  <script src="app.js" defer></script>
+  <footer class="footer"><span>AI LOTTERY <small>STATISTICAL INSIGHT</small></span><span>© <span id="year"></span></span></footer>
 </body>
 </html>
